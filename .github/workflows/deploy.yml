@@ -13,7 +13,10 @@ jobs:
         with:
           node-version: '20'
       - run: npm ci
-      - run: npx @cloudflare/next-on-pages
+      - name: Build
+        run: npx @cloudflare/next-on-pages
+        env:
+          NEXT_PUBLIC_MAPBOX_TOKEN: ${{ secrets.NEXT_PUBLIC_MAPBOX_TOKEN }}
       - name: Deploy to Cloudflare Pages
         run: npx wrangler pages deploy .vercel/output/static --project-name il-flood-dashboard --branch main
         env:

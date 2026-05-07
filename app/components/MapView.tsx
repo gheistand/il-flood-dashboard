@@ -5,6 +5,7 @@ import Map, { Marker, Layer, Source, NavigationControl } from 'react-map-gl/mapb
 import type { GageWithStatus, FloodStatus } from '@/lib/types';
 import GageDetailPanel from './GageDetailPanel';
 
+// Injected at build time via NEXT_PUBLIC_MAPBOX_TOKEN env var
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 const STATUS_COLORS: Record<FloodStatus, string> = {
   major: '#ef4444',

@@ -4,10 +4,10 @@ function computeStatus(gage: GageCache): FloodStatus {
   const h = gage.last_gage_height;
   if (h === null) return 'no_data';
 
-  // Check staleness (> 3 hours)
+  // Check staleness: mark no_data only if reading is >24h old (sensors can lag)
   if (gage.last_updated) {
     const updated = new Date(gage.last_updated).getTime();
-    if (Date.now() - updated > 3 * 60 * 60 * 1000) return 'no_data';
+    if (Date.now() - updated > 24 * 60 * 60 * 1000) return 'no_data';
   }
 
   if (gage.major_flood_stage !== null && h >= gage.major_flood_stage) return 'major';
