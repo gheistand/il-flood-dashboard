@@ -1,0 +1,19 @@
+name = "il-flood-poller"
+main = "workers/usgs-poller.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "il-flood-dashboard-db"
+database_id = "3b53da49-c3c8-4c09-9cfd-67d1def2464a"
+
+[[kv_namespaces]]
+binding = "IL_FLOOD_KV"
+id = "825beb9578a94bef8aba50749620217e"
+
+workers_dev = true
+preview_urls = false
+
+[triggers]
+crons = ["*/15 * * * *"]

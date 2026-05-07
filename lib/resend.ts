@@ -18,8 +18,9 @@ export interface SendConfirmationEmailParams {
   apiKey: string;
 }
 
-const FROM = 'alerts@gheistand.dev';
-const FROM_DEV = 'onboarding@resend.dev';
+// Using Resend shared sender for now. Switch to 'alerts@gheistand.dev' once
+// gheistand.dev is added as a verified domain in Resend (requires Pro plan).
+const FROM = 'onboarding@resend.dev';
 const BASE_URL = 'https://flood.gheistand.dev';
 
 function formatTriggerLevel(level: string): string {
@@ -39,7 +40,7 @@ async function sendEmail(params: {
   subject: string;
   html: string;
 }): Promise<string | null> {
-  const from = params.apiKey.startsWith('re_') ? FROM : FROM_DEV;
+  const from = FROM;
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
