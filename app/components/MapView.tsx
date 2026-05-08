@@ -164,11 +164,12 @@ export default function MapView() {
         {markers}
       </Map>
 
-      {/* Drought Card */}
-      <DroughtCard />
+      {/* Bottom-left: drought card stacked above legend */}
+      <div className="absolute bottom-4 left-4 z-40 flex flex-col gap-2 items-start">
+        <DroughtCard />
 
-      {/* Legend (bottom-left) */}
-      <div className="absolute bottom-8 left-4 z-40 bg-gray-900/95 backdrop-blur rounded-lg p-3 border border-gray-700 text-xs space-y-1.5">
+        {/* Legend */}
+        <div className="bg-gray-900/95 backdrop-blur rounded-lg p-3 border border-gray-700 text-xs space-y-1.5">
         <div className="font-semibold text-gray-300 mb-1">Flood Status</div>
         {[
           { color: '#ef4444', label: 'Major Flood' },
@@ -205,6 +206,7 @@ export default function MapView() {
           </div>
         </div>
       </div>
+      </div>{/* end bottom-left stack */}
 
       {/* Loading overlay */}
       {loading && (

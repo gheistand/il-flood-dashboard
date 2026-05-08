@@ -20,9 +20,31 @@ export default function DroughtCard() {
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch('/api/drought');
-        const data = await res.json() as DroughtSummary | null;
-        setDrought(data);
+        // Call USDM directly from browser — CORS: * confirmed, avoids CF edge IP block
+        const today = new Date();
+        const ago = new Date(today);
+        ago.setDate(today.getDate() - 30);
+        const fmt = (d: Date) => d.toISOString().slice(0, 10);
+        const url = `https://usdmdataservices.unl.edu/api/StateStatistics/GetDroughtSeverityStatisticsByAreaPercent?aoi=17&startdate=${fmt(ago)}&enddate=${fmt(today)}&statisticsType=1`;
+        const res = await fetch(url, { headers: { Accept: 'application/json' } });
+        if (!res.ok) { setDrought(null); return; }
+        const rows = await res.json() as any[];
+        if (!Array.isArray(rows) || rows.length === 0) { setDrought(null); return; }
+        // API returns newest record first OR last depending on date range — use last entry
+        const latest = rows[rows.length - 1];
+        const none = latest.none ?? latest.None ?? 0;
+        const d0   = latest.d0   ?? latest.D0   ?? 0;
+        const d1   = latest.d1   ?? latest.D1   ?? 0;
+        const d2   = latest.d2   ?? latest.D2   ?? 0;
+        const d3   = latest.d3   ?? latest.D3   ?? 0;
+        const d4   = latest.d4   ?? latest.D4   ?? 0;
+        const worst = d4 > 0 ? 'D4' : d3 > 0 ? 'D3' : d2 > 0 ? 'D2' : d1 > 0 ? 'D1' : d0 > 0 ? 'D0' : 'None';
+        setDrought({
+          mapDate: latest.mapDate ?? latest.MapDate ?? latest.validStart ?? fmt(today),
+          none, d0, d1, d2, d3, d4,
+          inDrought: d1 + d2 + d3 + d4,
+          worstCategory: worst,
+        });
       } catch {
         setDrought(null);
       } finally {
@@ -34,10 +56,10 @@ export default function DroughtCard() {
 
   if (loading) {
     return (
-      <div className="absolute bottom-32 left-4 z-40 bg-gray-900/90 backdrop-blur rounded-lg p-3 border border-gray-700">
+      <div className="bg-gray-900/90 backdrop-blur rounded-lg p-3 border border-gray-700">
         <div className="flex items-center gap-2">
           <div className="animate-spin w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-          <span className="text-xs text-gray-400">Loading drought status...</span>
+          <span className="text-xs text-gray-400">Loading drought...</span>
         </div>
       </div>
     );
@@ -51,7 +73,7 @@ export default function DroughtCard() {
   if (!expanded) {
     return (
       <div
-        className="absolute bottom-32 left-4 z-40 bg-gray-900/90 backdrop-blur rounded-lg p-3 border border-gray-700 cursor-pointer hover:bg-gray-800/90 transition-colors w-[220px]"
+        className="bg-gray-900/90 backdrop-blur rounded-lg p-3 border border-gray-700 cursor-pointer hover:bg-gray-800/90 transition-colors w-[220px]"
         onClick={() => setExpanded(true)}
       >
         <div className="flex items-center justify-between gap-2">
@@ -68,7 +90,7 @@ export default function DroughtCard() {
   }
 
   return (
-    <div className="absolute bottom-32 left-4 z-40 bg-gray-900/90 backdrop-blur rounded-lg p-4 border border-gray-700 w-[280px]">
+    <div className="bg-gray-900/90 backdrop-blur rounded-lg p-4 border border-gray-700 w-[280px]">
       <div className="flex items-start justify-between mb-2">
         <div>
           <h3 className="text-sm font-semibold text-white">Illinois Drought Status</h3>
