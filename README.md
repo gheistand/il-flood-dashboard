@@ -26,7 +26,7 @@ Real-time flood monitoring for Illinois stream gages, powered by USGS data. Buil
 | Styling | Tailwind CSS v3 |
 | Hosting | Cloudflare Pages |
 | Database | Cloudflare D1 (SQLite) |
-| Cache/State | Cloudflare KV |
+| Cache/State | Cloudflare KV (on-demand only — sparkline + percentile caches) |
 | Email | Resend |
 | Map | Mapbox GL JS via react-map-gl |
 | Charts | Recharts |
@@ -134,6 +134,34 @@ Features:
 - View all active subscriptions
 - View alert log
 - Force-refresh gage data from USGS
+
+---
+
+## Architecture Notes
+
+### KV Usage
+Cloudflare KV is used **only for on-demand caches**:
+- Sparkline data per gage (1-hour TTL)
+- Historical percentile context per gage (6-hour TTL)
+
+These are written only when a user opens a gage detail panel — low volume, well within the free tier.
+
+**The poller does not write to KV.** Alert diffing (did this gage's flood status worsen?) is done by reading the previous `last_gage_height` from D1's `gage_cache` table before upserting new values. This avoids the 256-puts-per-run × 96-runs/day = 24,576/day that would blow the 1,000/day free tier limit.
+
+### Data Flow
+```
+[USGS IV API] ←── Scheduled Worker (every 15 min)
+                      │
+                      ├── Read existing gage from D1 → compute prevStatus
+                      ├── Upsert new readings into D1 gage_cache
+                      └── If status worsened → query subscriptions → send Resend email
+
+[Browser]
+  └── Next.js on Cloudflare Pages
+        ├── GET /api/gages → D1 query (all gages, current status)
+        ├── GET /api/gages/:siteNo/sparkline → KV cache → USGS DV API
+        └── GET /api/gages/:siteNo/percentile → KV cache → USGS Stats API
+```
 
 ---
 
