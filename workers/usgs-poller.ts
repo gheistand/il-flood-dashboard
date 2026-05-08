@@ -10,13 +10,6 @@ interface Env {
   ALERTS_ENABLED: string;
 }
 
-interface GageKVState {
-  siteNo: string;
-  gageHeight: number | null;
-  status: string;
-  lastChecked: string;
-}
-
 function computeStatusFromValues(
   gageHeight: number | null,
   actionStage: number | null,
@@ -52,18 +45,21 @@ async function runPoller(env: Env): Promise<{ updated: number; alertsSent: numbe
       const existingRow = await env.DB
         .prepare('SELECT * FROM gage_cache WHERE site_no = ?')
         .bind(g.siteNo)
-        .first<{ action_stage: number | null; flood_stage: number | null; major_flood_stage: number | null; site_name: string }>() ?? null;
+        .first<{ action_stage: number | null; flood_stage: number | null; major_flood_stage: number | null; site_name: string; last_gage_height: number | null }>() ?? null;
 
       const actionStage = existingRow?.action_stage ?? null;
       const floodStage = existingRow?.flood_stage ?? null;
       const majorFloodStage = existingRow?.major_flood_stage ?? null;
 
-      // Load previous KV state
-      const kvKey = `gage:${g.siteNo}`;
-      const prevState = await env.IL_FLOOD_KV.get<GageKVState>(kvKey, 'json');
+      // Compute previous status from D1 (before we overwrite it) — no KV needed
+      const prevStatus = computeStatusFromValues(
+        existingRow?.last_gage_height ?? null,
+        actionStage,
+        floodStage,
+        majorFloodStage
+      );
 
       const currentStatus = computeStatusFromValues(g.gageHeight, actionStage, floodStage, majorFloodStage);
-      const prevStatus = prevState?.status ?? 'normal';
 
       // Check if status worsened
       const currentRank = STATUS_RANK[currentStatus] ?? 0;
@@ -126,14 +122,7 @@ async function runPoller(env: Env): Promise<{ updated: number; alertsSent: numbe
         }
       }
 
-      // Save new KV state
-      const newState: GageKVState = {
-        siteNo: g.siteNo,
-        gageHeight: g.gageHeight,
-        status: currentStatus,
-        lastChecked: new Date().toISOString(),
-      };
-      await env.IL_FLOOD_KV.put(kvKey, JSON.stringify(newState), { expirationTtl: 3600 });
+      // State is now stored in D1 gage_cache — no KV put needed
     } catch (err) {
       console.error(`Error processing gage ${g.siteNo}:`, err);
     }
