@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { GageWithStatus, FloodStatus, SparklinePoint } from '@/lib/types';
+import type { GageWithStatus, FloodStatus, SparklinePoint, NIMSImage } from '@/lib/types';
 import Sparkline from './Sparkline';
 import AlertSubscribeForm from './AlertSubscribeForm';
 
@@ -25,30 +25,39 @@ interface Props {
 export default function GageDetailPanel({ gage, onClose }: Props) {
   const [sparkline, setSparkline] = useState<SparklinePoint[] | null>(null);
   const [percentile, setPercentile] = useState<Record<string, number> | null>(null);
+  const [cameras, setCameras] = useState<NIMSImage[] | null>(null);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const [sparkLoading, setSparkLoading] = useState(true);
   const [pctLoading, setPctLoading] = useState(true);
+  const [camerasLoading, setCamerasLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       try {
-        const [sparkRes, pctRes] = await Promise.all([
+        const [sparkRes, pctRes, cameraRes] = await Promise.all([
           fetch(`/api/gages/${gage.site_no}/sparkline`).then(r => r.json()),
           fetch(`/api/gages/${gage.site_no}/percentile`).then(r => r.json()),
+          fetch(`/api/gages/${gage.site_no}/cameras`).then(r => r.json()),
         ]);
         if (!cancelled) {
           setSparkline(Array.isArray(sparkRes) ? sparkRes : []);
           setPercentile(pctRes as Record<string, number>);
+          setCameras(Array.isArray(cameraRes) ? cameraRes : []);
+          setCurrentCameraIndex(0);
           setSparkLoading(false);
           setPctLoading(false);
+          setCamerasLoading(false);
         }
       } catch {
         if (!cancelled) {
           setSparkline([]);
           setPercentile(null);
+          setCameras([]);
           setSparkLoading(false);
           setPctLoading(false);
+          setCamerasLoading(false);
         }
       }
     }
@@ -182,6 +191,56 @@ export default function GageDetailPanel({ gage, onClose }: Props) {
           </div>
         )}
       </div>
+
+      {/* Station Camera */}
+      {cameras !== null && cameras.length > 0 && (
+        <div className="p-4 border-b border-gray-700">
+          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Station Camera</h3>
+          {camerasLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+            </div>
+          ) : (
+            <div>
+              <div className="relative">
+                <img
+                  src={cameras[currentCameraIndex].imageUrl}
+                  alt={cameras[currentCameraIndex].camName}
+                  className="w-full rounded-lg"
+                  loading="lazy"
+                />
+                {cameras.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentCameraIndex((prev) => (prev - 1 + cameras.length) % cameras.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-gray-900/80 hover:bg-gray-800 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                      aria-label="Previous camera"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      onClick={() => setCurrentCameraIndex((prev) => (prev + 1) % cameras.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-gray-900/80 hover:bg-gray-800 text-white rounded-full w-8 h-8 flex items-center justify-center"
+                      aria-label="Next camera"
+                    >
+                      ›
+                    </button>
+                  </>
+                )}
+              </div>
+              <div className="mt-2 text-sm text-gray-400">{cameras[currentCameraIndex].camName}</div>
+              <a
+                href={`https://waterdata.usgs.gov/monitoring-location/${gage.site_no}/#parameterCode=00065`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-400 hover:text-blue-300 mt-1 inline-flex items-center gap-1"
+              >
+                View live ↗
+              </a>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Alert Subscription */}
       <div className="p-4">

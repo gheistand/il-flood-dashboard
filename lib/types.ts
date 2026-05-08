@@ -66,6 +66,26 @@ export interface SparklinePoint {
   value: number;
 }
 
+export interface NIMSImage {
+  camId: string;
+  camName: string;
+  imageUrl: string;
+  thumbUrl: string;
+  capturedAt: string | null;
+}
+
+export interface DroughtSummary {
+  mapDate: string;
+  none: number;
+  d0: number;
+  d1: number;
+  d2: number;
+  d3: number;
+  d4: number;
+  inDrought: number;
+  worstCategory: string;
+}
+
 // CloudflareEnv is declared in env.d.ts as global augmentation of CloudflareEnv
 export type {};
 

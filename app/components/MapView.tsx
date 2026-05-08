@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Map, { Marker, Layer, Source, NavigationControl } from 'react-map-gl/mapbox';
 import type { GageWithStatus, FloodStatus } from '@/lib/types';
 import GageDetailPanel from './GageDetailPanel';
+import DroughtCard from './DroughtCard';
 
 // Injected at build time via NEXT_PUBLIC_MAPBOX_TOKEN env var
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
@@ -162,6 +163,9 @@ export default function MapView() {
 
         {markers}
       </Map>
+
+      {/* Drought Card */}
+      <DroughtCard />
 
       {/* Legend (bottom-left) */}
       <div className="absolute bottom-8 left-4 z-40 bg-gray-900/95 backdrop-blur rounded-lg p-3 border border-gray-700 text-xs space-y-1.5">
